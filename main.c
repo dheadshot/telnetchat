@@ -186,6 +186,22 @@ int main( int argc, char *argv[])
     {
       printf("Forked: Child.\n");
       /* Reset any non-child signals to SIG_DFL */
+      if (signal(SIGINT, SIG_DFL) == SIG_ERR)
+      {
+        perror(0);
+        close(server_fd);
+        close(session_fd);
+        wait(0);
+        exit(1);
+      }
+      if (signal(SIGTERM, SIG_DFL) == SIG_ERR)
+      {
+        perror(0);
+        close(server_fd);
+        close(session_fd);
+        wait(0);
+        exit(1);
+      }
       /* Save ipaddr? */
       close(server_fd);
       /* Do something with session_fd */
