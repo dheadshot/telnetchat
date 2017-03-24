@@ -96,14 +96,14 @@ int main( int argc, char *argv[])
   int reuseaddr = 1;
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1)
   {
-    fprintf(stderr, "%s\n", strerror(errno));
+    fprintf(stderr, "Could not set socket options: %s\n", strerror(errno));
     freeaddrinfo(res);
     exit(1);
   }
   
   if (bind(server_fd, res->ai_addr, res->ai_addrlen) == -1)
   {
-    fprintf(stderr, "%s\n", strerror(errno));
+    fprintf(stderr, "Could not bind socket: %s\n", strerror(errno));
     freeaddrinfo(res);
     exit(1);
   }
