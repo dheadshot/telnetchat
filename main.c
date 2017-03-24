@@ -45,7 +45,7 @@ void handle_sigterm(int sig)
 int main( int argc, char *argv[])
 {
   const char *hostname = NULL;
-  const char portname[] = "23"
+  const char portname[] = "23";
   struct addrinfo hints, *res = NULL;
   char hname[ADDRBUFFSIZE] = "";
   char ipaddr[ADDRBUFFSIZE] = "";
@@ -110,7 +110,7 @@ int main( int argc, char *argv[])
   /* Register any signal handlers here */
   struct sigaction sa;
   sa.sa_handler = &handle_sigchld;
-  sigemptyset(&sa.samask);
+  sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
   if (sigaction(SIGCHLD, &sa, 0) == -1)
   {
@@ -170,7 +170,7 @@ int main( int argc, char *argv[])
       printf("Forked: Child.\n");
       /* Reset any non-child signals to SIG_DFL */
       /* Save ipaddr? */
-      close(sever_fd);
+      close(server_fd);
       /* Do something with session_fd */
       
       printf("Ending session...\n");
@@ -192,7 +192,7 @@ int main( int argc, char *argv[])
     }
   }
   
-  printf("Closing server...\n")
+  printf("Closing server...\n");
   close(server_fd);
   printf("Waiting for children...\n");
   waitpid(-1,0,0);
