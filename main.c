@@ -114,7 +114,7 @@ int main( int argc, char *argv[])
     exit(1);
   }
   
-  printf("Entering Listen Loop...");
+  printf("Entering Listen Loop...\n");
   
   int session_fd = -1;
   struct sockaddr_storage anaddr;
@@ -154,6 +154,7 @@ int main( int argc, char *argv[])
     exit(1);
   }
   
+  printf("(Listening...)\n");
   while (endprog == 0)
   {
     anaddr_size = sizeof(anaddr);
