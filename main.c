@@ -13,6 +13,8 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 #include <time.h>
 
 
@@ -40,6 +42,18 @@ void handle_sigterm(int sig)
 {
   printf("Terminating Immediately!\n");
   exit(4);
+}
+
+int setnonblocking(int fd)
+{
+  int flags;
+#ifdef O_NONBLOCK
+  if ((flags = fcntl(fd, F_GETFL, 0)) == -1) flags = 0;
+  return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#else
+  flags = 1;
+  return ioctl(fd, FIOBIO &flags);
+#endif
 }
 
 int main( int argc, char *argv[])
