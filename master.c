@@ -169,9 +169,22 @@ int sendtomaster(char *sdata)
 int readfrommain(char rdbuff, long buffsize)
 {
   /* Returns: 1 = worked, 0 = Nothing there, -1 = Error, -2 = Bad Buffer */
+  char rddat[2] = " ";
+  long j = 0;
   int rdo = -1;
   if (buffsize <2) return -2;
-  rdo = read(mainfdo[FD_OUTN], rdbuff, buffsize-1);
+/*  rdo = read(mainfdo[FD_OUTN], rdbuff, buffsize-1); */
+  rdbuff[buffsize-1] = 0;
+  rdbuff[0] = 0;
+  do
+  {
+    rdo = read(mainfdo[FD_OUTN], rddat, 1);
+    rdbuff[j] = rddat[0];
+    j++;
+    if (j>=buffsize) break;
+    rdbuff[j] = 0;
+    if (rddat[0]=='\n') break;
+  } while (rdo>0);
   if (rdo == -1)
   {
     if (errno == EAGAIN) return 0;
@@ -188,8 +201,21 @@ int readfrommaster(char rdbuff, long buffsize)
 {
   /* Returns: 1 = worked, 0 = Nothing there, -1 = Error, -2 = Bad Buffer */
   int rdo = -1;
+  char rddat[2] = " ";
+  long j = 0;
   if (buffsize <2) return -2;
-  rdo = read(mainfdi[FD_OUTN], rdbuff, buffsize-1);
+  /*rdo = read(mainfdi[FD_OUTN], rdbuff, buffsize-1);*/
+  rdbuff[buffsize-1] = 0;
+  rdbuff[0] = 0;
+  do
+  {
+    rdo = read(mainfdi[FD_OUTN], rddat, 1);
+    rdbuff[j] = rddat[0];
+    j++;
+    if (j>=buffsize) break;
+    rdbuff[j] = 0;
+    if (rddat[0]=='\n') break;
+  } while (rdo>0);
   if (rdo == -1)
   {
     if (errno == EAGAIN) return 0;
@@ -240,23 +266,87 @@ int masterloop()
         /* Opened session */
         snum = atol(tbuf+(3*sizeof(char)));
         siofd = createiofd((int) snum);
-        pipe(siofd->fdi);
-        pipe(siofd->fdo);
-        sprintf(tbuf, "SFDI %d\nSFDO %d\n",siofd->fdo[FD_INN], siofd->fdi[FD_OUTN]);
-        rdret = sendtomain(tbuf);
-        if (rdret == 0)
+        if (siofd != NULL)
         {
-          /* ? */
+          pipe(siofd->fdi);
+          pipe(siofd->fdo);
+          sprintf(tbuf, "OS/ %ld\nSInf[ %ld\nSFDI= %d\nSFDO= %d\nSInf] %ld\n",snum,snum,siofd->fdo[FD_INN], siofd->fdi[FD_OUTN],snum);
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+        }
+        else
+        {
+          sprintf(tbuf, "OS~ %ld\nErr Out of Memory!\n",snum);
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
         }
       }
       else if (memcmp(tbuf,"CS ",3*sizeof(char)==0)
       {
         /* Closed Session */
         snum = atol(tbuf+(3*sizeof(char)));
+        siofd = getsessioniofd(snum);
+        if (siofd != NULL)
+        {
+          if (siofd->isopen != 0)
+          {
+            close(siofd->fdi[FD_INN]);
+            close(siofd->fdo[FD_OUTN]);
+            siofd->isopen = 0;
+          }
+          if (destroyiofd(siofd))
+          {
+            sprintf(tbuf,"CS/ %ld\n", snum); /* CS Success */
+            rdret = sendtomain(tbuf);
+            if (rdret == 0)
+            {
+              /* ? */
+            }
+          }
+          else
+          {
+            sprintf(tbuf,"CS~ %ld\nErr Could not destroy descriptor.\n", snum); /* CS Failure */
+            rdret = sendtomain(tbuf);
+            if (rdret == 0)
+            {
+              /* ? */
+            }
+          }
+        }
+        else
+        {
+          /* No Session */
+          sprintf(tbuf,"CS~ %ld\nErr Could not find session!\n", snum); /* CS Failure */
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+        }
       }
-      
+      else if (memcmp(tbuf,"MB ",3*sizeof(char)==0)
+      {
+        /* Message Broadcast! */
+      }
+      else if (memcmp(tbuf,"AYT? ",5*sizeof(char)==0 || memcmp(tbuf,"AYT?\n",5*sizeof(char)==0)
+      {
+        /* Are You There? */
+        rdret = sendtomain("AYT.\n");
+        if (rdret == 0)
+        {
+          /* ? */
+        }
+        
+      }
     }
     /* Read from other fds! */
+    
   }
   
   if (signal(SIGINT, SIG_DFL) == SIG_ERR)

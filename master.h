@@ -5,8 +5,8 @@
 #define FD_INN 1
 
 typedef struct iofdnode_struct {
-  int fdi[2];
-  int fdo[2];
+  int fdi[2]; /* To the subprocess */
+  int fdo[2]; /* From the subprocess */
   int sessionnum;
   int isopen;
   struct iofdnode_struct *next;
@@ -36,5 +36,28 @@ int readfrommaster(char rdbuff, long buffsize);
   /* Read Returns: 1 = worked, 0 = Nothing there, -1 = Error, -2 = Bad Buffer */
 int masterloop();
 
+/*
+ * Main/Master Communication Protocol:
+ * ==================================
+ * ? = Question
+ * . = Confirmation
+ * / = Success
+ * ~ = Failure (Follow with error message)
+ * = = Value
+ * (Nothing) = Instruction
+ * ! = Forced instruction
+ * ?! = Forced question
+ * [ = Block begin
+ * ] = Block end
+ * --------------------
+ * AYT = Are You There (?/., No argument)
+ * CS = Close Session (I///~, Argument is Session Number)
+ * Err = Error Message (I, Argument is Message)
+ * MB = Message Broadcast (I///~, Argument is Message)
+ * OS = Open Session (I///~, Argument is Session Number)
+ * SFDI = Session File Descriptor Input (=, Argument is FD)
+ * SFDO = Session File Descriptor Output (=, Argument is FD)
+ * SInf = Session Info Block ([/], Argument is Session Number)
+ */
 
 #endif
