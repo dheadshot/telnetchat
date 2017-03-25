@@ -33,7 +33,8 @@ int sendtomain(char *sdata);
 int sendtomaster(char *sdata);
 int readfrommain(char rdbuff, long buffsize);
 int readfrommaster(char rdbuff, long buffsize);
-  /* Read Returns: 1 = worked, 0 = Nothing there, -1 = Error, -2 = Bad Buffer */
+int readfromsession(int sessionnum, char rdbuff, long buffsize);
+  /* Read Returns: 1 = worked, 0 = Nothing there, -1 = Error, -2 = Bad Buffer, (-3 = Unknown Session Number) */
 int masterloop();
 
 /*
@@ -55,9 +56,12 @@ int masterloop();
  * Err = Error Message (I, Argument is Message)
  * MB = Message Broadcast (I///~, Argument is Message)
  * OS = Open Session (I///~, Argument is Session Number)
+ * OSP = Open Session Properties (I///~, Argument is Session Number)
  * SFDI = Session File Descriptor Input (=, Argument is FD)
  * SFDO = Session File Descriptor Output (=, Argument is FD)
+ * SFrk = Session Fork (I, Argument is Session Number)
  * SInf = Session Info Block ([/], Argument is Session Number)
+ * War = Warning Message (I, Argument is message)
  */
 
 #endif

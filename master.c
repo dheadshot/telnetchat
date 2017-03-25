@@ -228,6 +228,40 @@ int readfrommaster(char rdbuff, long buffsize)
   else return 0;
 }
 
+int readfromsession(int sessionnum, char rdbuff, long buffsize)
+{
+  /* Only master fork should call this! */
+  /* Returns: 1 = worked, 0 = Nothing there, -1 = Error, -2 = Bad Buffer, -3 = Invalid Sessionnum */
+  char rddat[2] = " ";
+  long j = 0;
+  int rdo = -1;
+  iofdnode *siofd = getsessioniofd(sessionnum);
+  if (siofd == NULL) return -3;
+  if (buffsize <2) return -2;
+/*  rdo = read(mainfdo[FD_OUTN], rdbuff, buffsize-1); */
+  rdbuff[buffsize-1] = 0;
+  rdbuff[0] = 0;
+  do
+  {
+    rdo = read(siofd->fdo[FD_OUTN], rddat, 1);
+    rdbuff[j] = rddat[0];
+    j++;
+    if (j>=buffsize) break;
+    rdbuff[j] = 0;
+    if (rddat[0]=='\n') break;
+  } while (rdo>0);
+  if (rdo == -1)
+  {
+    if (errno == EAGAIN) return 0;
+    return -1;
+  }
+  else if (rdo>0)
+  {
+    return 1;
+  }
+  else return 0;
+}
+
 void handle_master_sigint( int sig )
 {
   if (inloop) printf("Closing master...\n");
@@ -261,7 +295,8 @@ int masterloop()
       /* Do something with info */
       long snum = 0;
       iofdnode *siofd;
-      if (memcmp(tbuf,"OS ",3*sizeof(char)==0)
+      sesspropsnode *spn;
+      if (memcmp(tbuf,"OS ",3*sizeof(char))==0)
       {
         /* Opened session */
         snum = atol(tbuf+(3*sizeof(char)));
@@ -287,10 +322,83 @@ int masterloop()
           }
         }
       }
-      else if (memcmp(tbuf,"CS ",3*sizeof(char)==0)
+      else if (memcmp(tbuf,"OSP ",4*sizeof(char))==0)
+      {
+        /* Opened session properties */
+        snum = atol(tbuf+(4*sizeof(char)));
+        spn = createspn((int) snum);
+        if (spn != NULL)
+        {
+          sprintf(tbuf, "OSP/ %ld\n",snum);
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+        }
+        else
+        {
+          sprintf(tbuf, "OSP~ %ld\nErr Out of Memory!\n",snum);
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+        }
+      }
+      else if (memcmp(tbuf,"SFrk ",5*sizeof(char))==0)
+      {
+        /* Session has Forked */
+        snum = atol(tbuf+(5*sizeof(char)));
+        siofd = getsessioniofd(snum);
+        if (siofd != NULL)
+        {
+          close(siofd->fdo[FD_INN]);
+          close(siofd->fdi[FD_OUTN]);
+          sprintf(tbuf,"SFrk/ %ld\n", snum); /* SFrk Success */
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+        }
+        else
+        {
+          sprintf(tbuf,"SFrk~ %ld\nErr Could not find session!\n", snum); /* SFrk Failure */
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+          
+        }
+      }
+      else if (memcmp(tbuf,"CS ",3*sizeof(char))==0)
       {
         /* Closed Session */
         snum = atol(tbuf+(3*sizeof(char)));
+        spn = getsessionprops(snum);
+        if (spn != NULL)
+        {
+          if (!destroyspn(spn))
+          {
+            sprintf(tbuf,"SInf[ %ld\nErr Could not close session properties!\nSInf] %ld\n", snum,snum); /* CS Error */
+            rdret = sendtomain(tbuf);
+            if (rdret == 0)
+            {
+              /* ? */
+            }
+          }
+        }
+        else
+        {
+          sprintf(tbuf,"SInf[ %ld\nWar Could not find session properties.\nSInf] %ld\n", snum,snum); /* CS Warning */
+          rdret = sendtomain(tbuf);
+          if (rdret == 0)
+          {
+            /* ? */
+          }
+        }
         siofd = getsessioniofd(snum);
         if (siofd != NULL)
         {
@@ -330,11 +438,11 @@ int masterloop()
           }
         }
       }
-      else if (memcmp(tbuf,"MB ",3*sizeof(char)==0)
+      else if (memcmp(tbuf,"MB ",3*sizeof(char))==0)
       {
         /* Message Broadcast! */
       }
-      else if (memcmp(tbuf,"AYT? ",5*sizeof(char)==0 || memcmp(tbuf,"AYT?\n",5*sizeof(char)==0)
+      else if (memcmp(tbuf,"AYT? ",5*sizeof(char))==0 || memcmp(tbuf,"AYT?\n",5*sizeof(char))==0)
       {
         /* Are You There? */
         rdret = sendtomain("AYT.\n");
@@ -342,8 +450,8 @@ int masterloop()
         {
           /* ? */
         }
-        
       }
+      
     }
     /* Read from other fds! */
     
